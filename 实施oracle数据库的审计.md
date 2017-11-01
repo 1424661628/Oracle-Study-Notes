@@ -143,6 +143,114 @@ TABLESPACE_NAME                CONTENTS  RETENTION
 UNDOTBS1                       UNDO      NOGUARANTEE
 
 SQL> ALTER TABLESPACE undotbs1 RETENTION GUARANTEE; //开启保证
+
+SQL> ALTER TABLESPACE undotbs1 RETENTION GUARANTEE; //关闭保证
 ```
+
+## Implementing Oracle Database Auditing  
+为了数据库的安全，避免非法访问和数据泄漏，对数据库的时间进行记录
+
+### Separation(分开) of Responsibilities(职责)  
+
+- Users with DBA privileges must be trusted.
+    + Abuse(滥用) of trust
+    + Audit trails protecting the trusted position
+- DBA responsibilities must be shared.
+- Accounts must never be shared.
+- The DBA and the system administrator must be different people.
+- Separate operator and DBA responsibilities.
+
+### Database Security
+
+A secure system ensures(确定) the confidentiality(机密性) of the data that it contains. There are several aspects(方面) of security:
+
+- Restricting(限制) access to data services.
+- Authenticating users.
+- Monitoring for suspicious(可疑的) activity.
+
+### Monitoring for Compliance(规章)  
+
+Monitoring or auditing must be an integral(完整的) part of your security procedures(过程).  
+Review the following:  
+- Mandatory(强制的) autiting.
+    + 比如：sys用户的登录和推出
+- Standard database auditing.
+    + 需要DBA配置和激活
+- Value-based auditing.
+    + 针对用户对表数据的访问
+- Fine-grained(详细的) auditing (FGA)
+    + 主要针对SQL语句的审计
+- SYSDBA (and SYSOPER) auditing.
+
+### Standard Database Auditing  
+
+![Standard-Database-Auditing](images/Standard-Database-Auditing.png)
+
+### Configuring the Audit Trail  
+
+Use AUDIT_TRAIL to enable database auditing.  
+```sql
+SQL> show parameter audit_trail;
+
+NAME                                 TYPE        VALUE
+------------------------------------ ----------- ------------------------------
+audit_trail                          string      DB
+```
+
+VALUE值：  
+
+- NONE：关闭审计
+- OS：将数据库审计结果记录在操作系统里，windows在事件查看器中查看，UNIX：记录在操作系统文件里面(audit_file_dest参数指定的目录里)。  
+```sql
+    SQL> show parameter audit_file_dest;
+
+    NAME                                 TYPE        VALUE
+    ------------------------------------ ----------- ------------------------------
+    audit_file_dest                      string      /u/home/oracle/database/admin/
+                                                     gzyy/adump
+```
+- DB：审计结果记录在数据库内部，可以通过数据字典视图查看。
+- DB EXTENDED：同DB，比DB记录的要详细。
+- XML：审计结果存放在操作系统里，为xml文件，路径参数：audit_file_dest
+- XML EXTENDED
+
+修改：  
+```sql
+SQL> ALTER SYSTEM SET AUDIT_TRAIL='XML' SCOPE=SPFILE;
+```
+Restart database after modifying this static initialization parameter.  
+
+### Uniform Audit Trails 
+
+![Uniform-Audit-Trails](images/Uniform-Audit-Trails.png)
+
+### Specifying Audit Options
+
+- SQL statement auditing:  
+
+        AUDIT table;
+        针对DDL进行审计：CREAT TABLE, DROP TABLE, ALTER TABLE  
+        可以针对特定的用户：  
+            AUDIT TABLE BY scott;
+        可以对用户的每次DDL操作都进行一次审计：  
+            AUDIT TABLE BY scott by access;
+        可以对用户的每次成功(失败)的DDL进行审计：  
+            AUDIT TABLE BY scott by access whenever [no]successful;  
+
+        查询审计结果：  
+        SQL> select username,timestamp,action_name from dba_audit_trail
+          2  where username='SCOTT';
+
+- System-privilege auditing (nonfocused and focused):  
+
+        AUDIT select any table, create any trigger;
+        AUDIT select any table BY hr BY SESSION;
+
+- Object-Privilege auditing (nonfocused and focused):  
+
+        AUDIT ALL on hr.employees;
+        AUDIT UPDATE,DELETE ON hr.employees BY ACCESS;
+
+        
 
 
