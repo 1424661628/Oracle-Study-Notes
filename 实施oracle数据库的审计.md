@@ -171,7 +171,8 @@ A secure system ensures(确定) the confidentiality(机密性) of the data that 
 ### Monitoring for Compliance(规章)  
 
 Monitoring or auditing must be an integral(完整的) part of your security procedures(过程).  
-Review the following:  
+Review the following: 
+
 - Mandatory(强制的) autiting.
     + 比如：sys用户的登录和推出
 - Standard database auditing.
@@ -251,6 +252,123 @@ Restart database after modifying this static initialization parameter.
         AUDIT ALL on hr.employees;
         AUDIT UPDATE,DELETE ON hr.employees BY ACCESS;
 
-        
+- Ps：取消审计使用：NOAUDIT
 
+        noaudit select any table;
 
+### Default Auditing
+
+![Default-Auditing](images/Default-Auditing.png)
+
+### Value-Based Auditing
+
+![Value-Based-Auditing](images/Value-Based-Auditing.png)
+
+    触发器(Trigger)在表上只能监控一下三种操作：
+        INSERT  UPDATE  DELETE
+
+- 创建触发器：
+    
+    监视用户在表DEPT上的INSERT  UPDATE  DELETE   
+
+        (1) 创建表：  
+                SQL> conn scott/tiger
+                Connected.
+                SQL> create table action
+                  2  (oper_user char(10),
+                  3  oper_time char(30),
+                  4  oper_type char(10)
+                  5  );
+
+                Table created.
+            
+        (2) 创建触发器：  
+                SQL> run
+                  1  create or replace trigger trg1
+                  2  before
+                  3  insert or update or delete
+                  4  on dept
+                  5  begin
+                  6      if deleting then
+                  7     insert into action values(user,to_char(sysdate,'YYYY-MM-DD HH24:MI:SS'),'DELETE');
+                  8      elsif updating then
+                  9     insert into action values(user,to_char(sysdate,'YYYY-MM-DD HH24:MI:SS'),'UPDATE');
+                 10      else
+                 11     insert into action values(user,to_char(sysdate,'YYYY-MM-DD HH24:MI:SS'),'INSERT');
+                 12      end if;
+                 13* end;
+
+                Trigger created.
+
+        (3) 使用sys用户创建user1来测试：
+                SQL> conn sys as sysdba
+                Enter password: 
+                Connected.
+                SQL> create user user1 identified by "abcd1234";
+
+                User created.
+
+                SQL> grant resource,connect to user1;
+
+                Grant succeeded.
+
+        (4) 使用scott用户将dept的 增、删、改、查 权限授权给user1：
+                SQL> conn scott/tiger
+                Connected.
+                SQL> grant select,insert,update,delete on dept to user1;
+
+                Grant succeeded.
+
+        (5) 使用user1用户对dept操作进行测试：
+                SQL> conn user1/abcd1234   
+                Connected.
+                SQL> select * from scott.dept;
+
+                    DEPTNO DNAME          LOC
+                ---------- -------------- -------------
+                        50 NETWORK        BEIJING
+                        10 ACCOUNTING     NEW YORK
+                        20 RESEARCH       DALLAS
+                        30 SALES          CHICAGO
+                        40 OPERATIONS     BOSTON
+                SQL> run
+                  1* insert into scott.dept values(60,'Wangjueji','shanghai')
+
+                1 row created.
+
+        (6) 切换至 scott 查看 action 表中是否有记录：
+                SQL> conn scott/tiger
+                Connected.
+                SQL> select * from action;
+
+                OPER_USER  OPER_TIME                      OPER_TYPE
+                ---------- ------------------------------ ----------
+                USER1      2017-11-09 22:52:27            INSERT
+
+### Fine-Grained Auditing
+
+![Fine-Grained-Auditing](images/Fine-Grained-Auditing.png)
+
+### FGA Policy
+
+![FGA-Policy](images/FGA-Policy.png)
+
+### Audited DML statement:Considerations 
+
+![Audited-DML-statement](images/Audited-DML-staement.png)
+
+### FGA Guidelines
+
+![FGA-Guidelines](images/FGA-Guidelines.png)
+
+### sysDBA Auditing
+
+![sysDBA-Auditing](images/sysDBA-auditing.png)
+
+### Maintaining the Audit Trail
+
+![Mainta-Audit-Trail](images/Mainta-Audit-Trail.png)
+
+### Oracle Audit Vault
+
+![Oracle-Audit-Vault](images/Oracle-Audit-Vault.png)
